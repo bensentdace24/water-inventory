@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1"
+    />
+    <title>Gallon Log</title>
+    <style>
+      :root {
+        --bg: #eef3f1;
+        --surface: #ffffff;
+        --primary: #0b4f4a;
+        --primary-dark: #073836;
+        --amber: #e0a238;
+        --amber-dark: #b87f22;
+        --steel: #3e7cb1;
+        --text: #1c2624;
+        --text-muted: #5b6d69;
+        --border: #dce6e2;
+        --danger: #b14435;
+        --radius-sm: 6px;
+        --radius-md: 10px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        min-height: 100vh;
+        padding-bottom: 100px;
+      }
+      .numeric {
+        font-variant-numeric: tabular-nums;
+      }
+
+      header {
+        background: var(--primary);
+        color: #fff;
+        padding: 18px 16px 16px;
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        box-shadow: 0 2px 8px rgba(7, 56, 54, 0.18);
+      }
+      header h1 {
+        margin: 0;
+        font-size: 19px;
+        font-weight: 700;
+        letter-spacing: 0.1px;
+      }
+      header p {
+        margin: 3px 0 0;
+        font-size: 12.5px;
+        color: #bfe0da;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1px;
+        background: var(--border);
+        margin: 14px 12px 0;
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        border: 1px solid var(--border);
+      }
+      .stat {
+        background: var(--surface);
+        padding: 11px 10px;
+        text-align: left;
+      }
+      .stat .label {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-bottom: 3px;
+      }
+      .stat .value {
+        font-size: 19px;
+        font-weight: 700;
+      }
+      .stat.out .value {
+        color: var(--amber-dark);
+      }
+      .stat.in .value {
+        color: var(--steel);
+      }
+
+      main {
+        padding: 14px 12px 0;
+      }
+
+      .empty-state {
+        background: var(--surface);
+        border: 1px dashed var(--border);
+        border-radius: var(--radius-md);
+        padding: 36px 20px;
+        text-align: center;
+        color: var(--text-muted);
+        margin-top: 16px;
+      }
+      .empty-state strong {
+        display: block;
+        color: var(--text);
+        font-size: 15px;
+        margin-bottom: 4px;
+      }
+
+      .day-group {
+        margin-top: 18px;
+      }
+      .day-label {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-muted);
+        margin: 0 2px 6px;
+      }
+
+      .row {
+        background: var(--surface);
+        border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+        border-bottom: 1px solid var(--border);
+        border-left: 4px solid var(--border);
+        padding: 11px 12px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .row.flow-out {
+        border-left-color: var(--amber);
+      }
+      .row.flow-in {
+        border-left-color: var(--steel);
+      }
+      .row:first-child {
+        border-top-left-radius: var(--radius-sm);
+        border-top-right-radius: var(--radius-sm);
+      }
+      .row:last-child {
+        border-bottom-left-radius: var(--radius-sm);
+        border-bottom-right-radius: var(--radius-sm);
+        border-bottom: none;
+      }
+
+      .row-main {
+        flex: 1;
+        min-width: 0;
+      }
+      .chips {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 5px;
+        flex-wrap: wrap;
+      }
+      .chip {
+        font-size: 13px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 100px;
+      }
+      .chip.delivered {
+        background: #fbefda;
+        color: var(--amber-dark);
+      }
+      .chip.empty {
+        background: #e4eef6;
+        color: var(--steel);
+      }
+      .chip.none {
+        background: #f1f1ef;
+        color: var(--text-muted);
+        font-weight: 600;
+      }
+
+      .people {
+        font-size: 12.5px;
+        color: var(--text-muted);
+        line-height: 1.5;
+      }
+      .people b {
+        color: var(--text);
+        font-weight: 600;
+      }
+      .notes {
+        font-size: 12px;
+        color: var(--text-muted);
+        font-style: italic;
+        margin-top: 3px;
+      }
+
+      .row-actions {
+        display: flex;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+      .icon-btn {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-size: 15px;
+        padding: 5px 7px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .icon-btn:hover {
+        background: var(--bg);
+      }
+
+      .fab {
+        position: fixed;
+        right: 18px;
+        bottom: 22px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--amber);
+        color: var(--primary-dark);
+        border: none;
+        font-size: 28px;
+        font-weight: 400;
+        line-height: 1;
+        box-shadow: 0 4px 14px rgba(184, 127, 34, 0.45);
+        cursor: pointer;
+        z-index: 25;
+      }
+      .fab:active {
+        background: var(--amber-dark);
+      }
+
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(7, 20, 18, 0.45);
+        z-index: 30;
+        display: none;
+      }
+      .overlay.show {
+        display: block;
+      }
+
+      .sheet {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--surface);
+        border-radius: 16px 16px 0 0;
+        z-index: 31;
+        max-height: 88vh;
+        overflow-y: auto;
+        transform: translateY(100%);
+        transition: transform 0.22s ease;
+        padding: 6px 18px 22px;
+      }
+      .sheet.show {
+        transform: translateY(0);
+      }
+      .sheet-handle {
+        width: 38px;
+        height: 4px;
+        background: var(--border);
+        border-radius: 4px;
+        margin: 10px auto 12px;
+      }
+      .sheet h2 {
+        font-size: 17px;
+        margin: 0 0 14px;
+      }
+
+      .field {
+        margin-bottom: 13px;
+      }
+      .field label {
+        display: block;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: 5px;
+      }
+      .field input,
+      .field textarea {
+        width: 100%;
+        padding: 10px 11px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        font-size: 15px;
+        font-family: inherit;
+        color: var(--text);
+        background: var(--bg);
+      }
+      .field input:focus,
+      .field textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        background: #fff;
+      }
+      .field-row {
+        display: flex;
+        gap: 10px;
+      }
+      .field-row .field {
+        flex: 1;
+      }
+
+      .sheet-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 6px;
+      }
+      .btn {
+        flex: 1;
+        padding: 12px;
+        border-radius: var(--radius-sm);
+        border: none;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .btn-primary {
+        background: var(--primary);
+        color: #fff;
+      }
+      .btn-secondary {
+        background: var(--bg);
+        color: var(--text-muted);
+      }
+      .btn-danger {
+        background: #f7e4e0;
+        color: var(--danger);
+      }
+
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 92px;
+        transform: translateX(-50%);
+        background: var(--primary-dark);
+        color: #fff;
+        padding: 9px 16px;
+        border-radius: 100px;
+        font-size: 13px;
+        z-index: 40;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        pointer-events: none;
+      }
+      .toast.show {
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Gallon Log</h1>
+      <p>
+        Shared delivery &amp; return record — everyone on the team sees the same
+        log
+      </p>
+    </header>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="label">Total delivered (all time)</div>
+        <div class="value numeric" id="statTotalDelivered">–</div>
+      </div>
+      <div class="stat">
+        <div class="label">Total returned (all time)</div>
+        <div class="value numeric" id="statTotalEmpty">–</div>
+      </div>
+      <div class="stat">
+        <div class="label">Delivered last 7 days</div>
+        <div class="value numeric" id="statWeekDelivered">–</div>
+      </div>
+      <div class="stat out">
+        <div class="label">Containers out</div>
+        <div class="value numeric" id="statOut">–</div>
+      </div>
+    </div>
+
+    <main>
+      <div id="listContainer"></div>
+    </main>
+
+    <button class="fab" id="fabAdd" title="Add entry">+</button>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="sheet" id="sheet">
+      <div class="sheet-handle"></div>
+      <h2 id="sheetTitle">Add entry</h2>
+      <form id="entryForm">
+        <div class="field">
+          <label for="fDate">Date</label>
+          <input type="date" id="fDate" required />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="fDelivered">Delivered gallons</label>
+            <input type="number" id="fDelivered" min="0" placeholder="0" />
+          </div>
+          <div class="field">
+            <label for="fEmpty">Empty gallons returned</label>
+            <input type="number" id="fEmpty" min="0" placeholder="0" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="fDeliveredBy">Delivered by</label>
+          <input
+            type="text"
+            id="fDeliveredBy"
+            list="nameList"
+            placeholder="Staff name"
+          />
+        </div>
+        <div class="field">
+          <label for="fReceivedBy">Received by</label>
+          <input
+            type="text"
+            id="fReceivedBy"
+            list="nameList"
+            placeholder="Customer / receiver name"
+          />
+        </div>
+        <datalist id="nameList"></datalist>
+        <div class="field">
+          <label for="fNotes">Notes (optional)</label>
+          <textarea
+            id="fNotes"
+            rows="2"
+            placeholder="Anything worth remembering about this entry"
+          ></textarea>
+        </div>
+        <div class="sheet-actions">
+          <button
+            type="button"
+            class="btn btn-danger"
+            id="deleteBtn"
+            style="display: none"
+          >
+            Delete
+          </button>
+          <button type="button" class="btn btn-secondary" id="cancelBtn">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" id="saveBtn">
+            Save entry
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="gallon-log.js"></script>
+  </body>
+</html>
